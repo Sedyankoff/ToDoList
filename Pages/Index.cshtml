@@ -1,0 +1,254 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="heading-section d-flex justify-content-between align-items-center mb-5">
+    <div class="left-side">
+        <h2 id="text-title">TASKS</h2>
+    </div>
+    <div class="filter-button-container position-relative">
+        <button class="filter-button m-0 p-0 d-flex justify-content-center align-items-center">
+            <img src="images/filter.png" alt="Filter Image" height="50" />
+            <p class="add-text m-0 p-0" id="filter-heading">@Model.CurrentFilter</p>
+        </button>
+        <div id="filterDropdown" class="dropdown-content">
+            <a href="/?filter=all" id="show-all">All</a>
+            <a href="/?filter=active" id="show-active">Active</a>
+        </div>
+    </div>
+    <button class="add-button m-0 p-0 d-flex justify-content-center align-items-center">
+        <img src="images/addButton.png" alt="Plus Image" height="40" class="m-1" />
+        <p class="add-text m-1 p-0">Create Task</p>
+    </button>
+    <div id="addTaskModal" class="modal">
+        <div class="modal-content d-flex justify-content-center flex-column">
+            <div class="d-flex justify-content-end align-items-start m-0 p-0">
+                <span class="close-button">&times;</span>
+            </div>
+            <div class="title-container m-0 p-0">
+                <h2><b>Create Task</b></h2>
+            </div>
+            <div class="form-container d-flex flex-column m-0 p-0">
+                <form method="post" action="/Index?handler=CreateTask">
+                    @Html.AntiForgeryToken()
+                    <label for="taskName">Name:</label>
+                    <input type="text" id="taskName" name="taskName" required><br><br>
+                    <label for="taskDesc">Description:</label>
+                    <input type="text" id="taskDesc" name="taskDesc" required><br><br>
+                    <label for="taskDead">Deadline:</label>
+                    <input type="datetime-local" id="taskDead" name="taskDead" value="cure" required><br><br>
+                    <p class="result"></p>
+                    <input type="submit" value="Create">
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="task-section">
+    @foreach(var item in Model.listTasks)
+    {
+        <div class="row mt-4">
+            <div class="tick-container col-md-1 col-sm-1 d-flex justify-content-center align-items-center">
+                <button class="tick-button m-0 p-0 @(item.IsFinished ? "ticked" : "unticked")" data-task-id="@item.Id">
+                    <img src="@(item.IsFinished ? "images/ticked.png" : "images/unticked.png")" alt="Tick Image" height="25" />
+                </button>
+            </div>
+            <div class="info-container col-md-10 col-sm-11 d-flex flex-column m-0 p-3 @(item.IsFinished ? (item.IsActive ? "grayed-out" : "in-red") : "")">
+                <div class="container-top d-flex justify-content-between align-items-start">
+                    <h4>@item.Title</h4>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <h6 class="m-0 p-0">Status:</h6>
+                        <div class="circle m-2" style="background-color:@(item.IsActive ? "green" : "red");"></div>
+                    </div>
+                </div>
+                <div class="container-bot d-flex justify-content-between align-items-end">
+                    <div class="container-desc">
+                        <div>@item.Description</div>
+                    </div>
+                    <h6 class="m-0 p-0">@item.Deadline</h6>
+                </div>
+            </div>
+
+            <div class="delete-container col-md-1 d-flex justify-content-center align-items-center">
+                <button class="delete-button m-0 p-0" data-task-id="@item.Id" onclick="deleteTask(this)">
+                    <img src="images/blankX.png" alt="X Image" height="70" />
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    function deleteTask(button) {
+        var taskId = button.getAttribute('data-task-id');
+        var token = document.getElementsByName("__RequestVerificationToken")[0].value;
+
+        fetch('/Index?handler=DeleteTask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token
+            },
+            body: `taskId=${taskId}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data === "Success") {
+                    window.location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var input = document.getElementById('taskDead');
+        var now = new Date();
+        var localDatetime = now.getFullYear() + '-'
+            + ('0' + (now.getMonth() + 1)).slice(-2) + '-'
+            + ('0' + now.getDate()).slice(-2) + 'T'
+            + ('0' + now.getHours()).slice(-2) + ':'
+            + ('0' + now.getMinutes()).slice(-2);
+        input.value = localDatetime;
+
+        var form = document.querySelector('form');
+        form.onsubmit = function (event) {
+            event.preventDefault();
+            var formData = new FormData(form);
+            var result = document.querySelector('.result');
+            var deadlineInput = document.getElementById('taskDead');
+            var deadlineValue = new Date(deadlineInput.value);
+            var currentDateTime = new Date();
+
+            if (deadlineValue <= currentDateTime) {
+                result.style.display = "block";
+                result.textContent = "Please enter a date that is not in the past!";
+                return false;
+            }
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                .then(data => {
+                    if (data.includes("Success")) {
+                        document.getElementById("addTaskModal").style.display = "none";
+                        location.reload();
+                    } else {
+                        console.error("Failed to create task");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        };
+
+        var tickButtons = document.querySelectorAll(".tick-button");
+        tickButtons.forEach(function (button) {
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                var taskId = button.getAttribute('data-task-id');
+                var token = document.getElementsByName("__RequestVerificationToken")[0].value;
+
+                fetch('/Index?handler=ToggleIsFinished', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    },
+                    body: `taskId=${taskId}`
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data === "Success") {
+                           
+                        } else {
+                            console.error('Error:', data);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+
+                var img = this.querySelector("img");
+                var infoContainer = this.closest('.row').querySelector('.info-container');
+                var circle = this.closest('.row').querySelector('.circle');
+
+                var circleStyle = window.getComputedStyle(circle);
+                var bgColor = circleStyle.backgroundColor;
+
+                if (bgColor === "rgb(255, 0, 0)") {
+                    infoContainer.classList.add("in-red");
+                } else if (bgColor === "rgb(0, 128, 0)") {
+                    infoContainer.classList.add("grayed-out");
+                }
+
+                if (img.src.includes("unticked")) {
+                    img.src = "images/ticked.png";
+                    img.classList.replace("unticked", "ticked");
+                } else {
+                    img.src = "images/unticked.png";
+                    img.classList.replace("ticked", "unticked");
+                    infoContainer.classList.remove("in-red", "grayed-out");
+                }
+            });
+        });
+
+        var deleteButtons = document.querySelectorAll(".delete-button");
+        deleteButtons.forEach(function (button) {
+            button.addEventListener("mouseenter", function () {
+                var img = this.querySelector("img");
+                img.src = "images/coloredX.png";
+                img.classList.remove("unhovered");
+                img.classList.add("hovered");
+            });
+            button.addEventListener("mouseleave", function () {
+                var img = this.querySelector("img");
+                img.src = "images/blankX.png";
+                img.classList.remove("hovered");
+                img.classList.add("unhovered");
+            });
+        });
+
+        var filterButton = document.querySelector(".filter-button");
+        var dropdown = document.getElementById("filterDropdown");
+        var viewAll = document.getElementById("show-all");
+        var viewActive = document.getElementById("show-active")
+        var filterHeading = document.getElementById("filter-heading");
+
+        filterButton.addEventListener("click", function () {
+            dropdown.classList.toggle('visible');
+        });
+
+        viewAll.addEventListener("click", function () {
+            window.location.href = '/?filter=all';
+        });
+
+        viewActive.addEventListener("click", function () {
+            window.location.href = '/?filter=active';
+        });
+
+        var modal = document.getElementById("addTaskModal");
+        var btn = document.getElementsByClassName("add-button")[0];
+        var span = document.getElementsByClassName("close-button")[0];
+
+        btn.onclick = function () {
+            modal.style.display = "block";
+        }
+
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            } else if (!event.target.matches('.filter-button, .filter-button *, .dropdown-content, .dropdown-content *')) {
+                if (dropdown.classList.contains('visible')) {
+                    dropdown.classList.remove('visible');
+                }
+            }
+        };
+    });
+</script>
