@@ -1,0 +1,8 @@
+﻿INSERT INTO tasks (title, description, deadline, is_finished, is_active)
+VALUES 
+    ('Complete project', 'Finish writing the code and submit by the deadline', '2024-04-19', 0, 1),
+    ('Attend meeting', 'Discuss project milestones with the team', '2024-04-25', 0, 1),
+    ('Update documentation', 'Revise the user guide to reflect recent changes', '2024-05-05', 0, 1),
+    ('Plan team outing', 'Organize a team building activity for the next quarter', '2024-07-15', 0, 1),
+    ('Prepare presentation', 'Prepare the quarterly business review presentation', '2024-06-10', 0, 1),
+    ('Conduct research', 'Conduct user research for the new product features', '2024-08-20', 0, 1);

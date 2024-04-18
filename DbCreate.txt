@@ -1,0 +1,12 @@
+﻿CREATE TABLE [dbo].[tasks] (
+    [id]          INT           IDENTITY (1, 1) NOT NULL,
+    [title]       VARCHAR (100) NOT NULL,
+    [description] VARCHAR (150) NOT NULL,
+    [deadline]    DATETIME      NULL,
+    [is_finished] BIT           DEFAULT ((0)) NOT NULL,
+    [is_active]   BIT           DEFAULT ((1)) NOT NULL,
+    PRIMARY KEY CLUSTERED ([id] ASC),
+    UNIQUE NONCLUSTERED ([title] ASC)
+);
+
+Заявка за създаване на базата
